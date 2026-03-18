@@ -1,0 +1,23 @@
+# Core
+fastapi
+uvicorn
+streamlit
+python-multipart
+requests
+
+# PDF & ML
+pymupdf
+sentence-transformers
+faiss-cpu
+numpy
+
+# LLM
+groq
+
+# Auth
+bcrypt
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Utils
+python-dotenv

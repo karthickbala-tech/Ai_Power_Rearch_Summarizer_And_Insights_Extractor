@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.env
+venv/
+data/
+index/faiss.index
+index/metadata.json
+
+
+
+*.py[cod]
+*.pyo
+
+.venv/
+
+# Project data
+data/
+index/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,14 @@
+{
+    "users": [
+        {
+            "username": "karthick",
+            "password": "$2b$12$B0/h.JkDEKDditQgKAdB0umzabDLCkMedZc76fnTPItZoCwOr8Jd2",
+            "full_name": "Karthick Bala"
+        },
+        {
+            "username": "mani007",
+            "password": "$2b$12$k1z0bM1jjrXBLIYVuIDrvOzU1E0NeWlUFNhCEeubferxebtjqhz8i",
+            "full_name": "mani"
+        }
+    ]
+}
