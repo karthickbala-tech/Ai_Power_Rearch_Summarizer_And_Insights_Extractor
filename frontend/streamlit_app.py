@@ -22,6 +22,7 @@ def init():
         "chat_history": [], "session_id": str(uuid.uuid4()),
         "dark_mode": False, "token": None, "username": None,
         "logged_in": False, "full_name": None, "auth_page": "login",
+        "menu_open": False,                          # ← NEW
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -43,6 +44,8 @@ if is_dark:
     --nav-bg:rgba(22,14,36,0.85); --app-g1:rgba(92,61,143,0.3);
     --app-g2:rgba(45,27,71,0.4); --footer-border:#2A1E42; --footer-color:#6B4C9A;
     --scbar-track:#160E24; --scbar-thumb:#4E3E70;
+    --sb-bg:#100A1C; --sb-border:#2A1E42; --sb-text:#C8B0F0; --sb-hover:#1E1430;
+    --ham-bg:rgba(38,27,60,0.95); --ham-border:#3A2C58;
     """
 else:
     theme = """
@@ -56,6 +59,8 @@ else:
     --nav-bg:rgba(255,255,255,0.75); --app-g1:rgba(196,168,216,0.45);
     --app-g2:rgba(155,127,192,0.25); --footer-border:#DDD0EE; --footer-color:#B49ACC;
     --scbar-track:#E4D8F2; --scbar-thumb:#B49ACC;
+    --sb-bg:#F7F2FC; --sb-border:#DDD0EE; --sb-text:#3D2260; --sb-hover:#EDE0FF;
+    --ham-bg:rgba(255,255,255,0.95); --ham-border:#C9B8E0;
     """
 
 st.markdown(f"""
@@ -75,17 +80,180 @@ st.markdown(f"""
 }}
 
 /* ══════════════════════════════════════
-   THEME TOGGLE — fixed below nav brand
+   SIDEBAR STYLING
 ══════════════════════════════════════ */
-.theme-btn,
-.theme-btn > div,
-.theme-btn .stButton {{
-    height: 0 !important;
-    min-height: 0 !important;
-    overflow: visible !important;
+[data-testid="stSidebar"] {{
+    background: var(--sb-bg) !important;
+    border-right: 1px solid var(--sb-border) !important;
+}}
+[data-testid="stSidebar"] > div:first-child {{
+    padding-top: 1rem !important;
+}}
+.sidebar-header {{
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-1) !important;
+    padding: 0.5rem 0 0.2rem 0;
+    letter-spacing: -0.02em;
+}}
+.sidebar-divider {{
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--sb-border), transparent);
+    margin: 0.8rem 0;
+}}
+.sidebar-section {{
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-4) !important;
+    margin: 0.9rem 0 0.4rem 0;
+    padding-left: 2px;
+}}
+/* Sidebar buttons — override global styles */
+[data-testid="stSidebar"] .stButton > button,
+[data-testid="stSidebar"] .stButton > button * {{
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    color: var(--sb-text) !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    padding: 0.55rem 0.9rem !important;
+    width: 100% !important;
+    text-align: left !important;
+    box-shadow: none !important;
+    transform: none !important;
+    transition: all 0.15s !important;
+}}
+[data-testid="stSidebar"] .stButton > button:hover,
+[data-testid="stSidebar"] .stButton > button:hover * {{
+    background: var(--sb-hover) !important;
+    border-color: var(--border-md) !important;
+    color: var(--primary) !important;
+    transform: none !important;
+}}
+/* Sidebar logout button — red tint */
+[data-testid="stSidebar"] .stButton > button[data-testid*="sb_logout"],
+[data-testid="stSidebar"] .sb-logout-btn > div > button {{
+    color: #C47B9B !important;
+}}
+/* User info card in sidebar */
+.sb-user-card {{
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-md);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+}}
+.sb-user-name {{
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-1) !important;
+}}
+.sb-user-tag {{
+    font-size: 0.65rem;
+    color: var(--text-4) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    margin-top: 2px;
+}}
+.sb-paper-card {{
+    background: var(--primary-dim);
+    border: 1px solid var(--border-md);
+    border-radius: 10px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.72rem;
+    color: var(--text-3) !important;
+    word-break: break-all;
+    line-height: 1.5;
+}}
+
+/* ══════════════════════════════════════
+   HAMBURGER BUTTON — fixed top-left
+   Target via Streamlit's auto st-key-* class
+══════════════════════════════════════ */
+.st-key-ham_btn {{
+    position: fixed !important;
+    top: 8px !important;
+    left: 8px !important;
+    z-index: 999999 !important;
+    height: auto !important;
+    width: auto !important;
     margin: 0 !important;
     padding: 0 !important;
-    line-height: 0 !important;
+}}
+.st-key-ham_btn button {{
+    background: var(--ham-bg) !important;
+    border: 1.5px solid var(--ham-border) !important;
+    border-radius: 10px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: unset !important;
+    padding: 0 !important;
+    font-size: 1.05rem !important;
+    box-shadow: 0 2px 12px var(--primary-glow) !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transform: none !important;
+    color: var(--text-1) !important;
+    backdrop-filter: blur(12px) !important;
+    transition: all 0.18s !important;
+}}
+.st-key-ham_btn button:hover {{
+    border-color: var(--primary) !important;
+    background: var(--primary-dim) !important;
+    transform: scale(1.05) !important;
+}}
+.st-key-ham_btn button p,
+.st-key-ham_btn button span {{
+    font-size: 1rem !important;
+    line-height: 1 !important;
+    color: var(--text-1) !important;
+}}
+
+/* ══════════════════════════════════════
+   THEME TOGGLE — fixed top-right
+   Target via Streamlit's auto st-key-* class
+══════════════════════════════════════ */
+.st-key-theme_toggle {{
+    position: fixed !important;
+    top: 8px !important;
+    right: 8px !important;
+    z-index: 999999 !important;
+    height: auto !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}}
+.st-key-theme_toggle button {{
+    background: var(--ham-bg) !important;
+    border: 1.5px solid var(--ham-border) !important;
+    border-radius: 50% !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: unset !important;
+    padding: 0 !important;
+    font-size: 1rem !important;
+    box-shadow: 0 2px 10px var(--primary-glow) !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transform: none !important;
+    backdrop-filter: blur(12px) !important;
+    transition: all 0.18s !important;
+}}
+.st-key-theme_toggle button:hover {{
+    border-color: var(--primary) !important;
+    background: var(--primary-dim) !important;
+    transform: scale(1.1) !important;
+}}
+.st-key-theme_toggle button p,
+.st-key-theme_toggle button span {{
+    font-size: 1rem !important;
+    line-height: 1 !important;
 }}
 
 /* ══════════════════════════════════════
@@ -102,41 +270,6 @@ st.markdown(f"""
 ::-webkit-scrollbar {{ width:3px; }}
 ::-webkit-scrollbar-track {{ background:var(--scbar-track); }}
 ::-webkit-scrollbar-thumb {{ background:var(--scbar-thumb); border-radius:4px; }}
-
-/* ════════════════════════════════════
-   THEME TOGGLE — fixed below 🔮 brand
-════════════════════════════════════ */
-.theme-btn > div > button {{
-    position: fixed !important;
-    top: 88px !important;
-    left: 32px !important;
-    transform: none !important;
-    z-index: 999999 !important;
-    background: var(--bg-elevated) !important;
-    border: 1.5px solid var(--border-md) !important;
-    border-radius: 50% !important;
-    width: 36px !important;
-    height: 36px !important;
-    min-width: unset !important;
-    padding: 0 !important;
-    font-size: 1rem !important;
-    line-height: 36px !important;
-    box-shadow: 0 2px 10px var(--primary-glow) !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}}
-.theme-btn > div > button:hover {{
-    border-color: var(--primary) !important;
-    background: var(--primary-dim) !important;
-    transform: scale(1.1) !important;
-}}
-.theme-btn > div > button p,
-.theme-btn > div > button span {{
-    font-size: 1rem !important;
-    line-height: 1 !important;
-}}
 
 /* ══════════════════════════════════════
    NAV BAR
@@ -355,15 +488,93 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
+
 # ════════════════════════════════════════════════
-# THEME TOGGLE — fixed below 🔮 brand in nav
+# SIDEBAR — must be rendered BEFORE the ham button
 # ════════════════════════════════════════════════
-st.markdown('<div class="theme-btn">', unsafe_allow_html=True)
+if st.session_state.menu_open:
+    with st.sidebar:
+        st.markdown('<div class="sidebar-header">🔮 ResearchMind AI</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+        # User card
+        if st.session_state.logged_in:
+            _uname = st.session_state.username or ""
+            _fname = st.session_state.full_name or _uname
+            st.markdown(f"""
+            <div class="sb-user-card">
+                <div class="sb-user-name">👤 &nbsp;{_fname}</div>
+                <div class="sb-user-tag">@{_uname}</div>
+            </div>""", unsafe_allow_html=True)
+
+        # Active paper
+        if st.session_state.paper_id:
+            st.markdown('<div class="sidebar-section">Active Paper</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="sb-paper-card">📄 &nbsp;{st.session_state.filename}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="sidebar-section">Navigation</div>', unsafe_allow_html=True)
+
+        if st.button("💬  Chat History", key="sb_history", use_container_width=True):
+            # Snap to Chat tab — just close menu for now
+            st.session_state.menu_open = False
+            st.rerun()
+
+        if st.button("📄  New Upload", key="sb_new_upload", use_container_width=True):
+            # Clear paper state and close menu
+            st.session_state.paper_id      = None
+            st.session_state.filename      = None
+            st.session_state.uploaded_name = None
+            st.session_state.summary       = None
+            st.session_state.insights      = {}
+            st.session_state.chat_history  = []
+            st.session_state.menu_open     = False
+            st.rerun()
+
+        if st.button("🗑️  Clear Chat", key="sb_clear_chat", use_container_width=True):
+            st.session_state.chat_history = []
+            st.session_state.session_id   = str(uuid.uuid4())
+            st.session_state.menu_open    = False
+            st.rerun()
+
+        st.markdown('<div class="sidebar-section">Info</div>', unsafe_allow_html=True)
+
+        if st.button("❓  Help", key="sb_help", use_container_width=True):
+            st.info("Upload a PDF → Summarize → Extract Insights → Chat with your paper.")
+
+        if st.button("ℹ️  About", key="sb_about", use_container_width=True):
+            st.info("ResearchMind AI · FastAPI · FAISS · Groq LLM · Sentence Transformers")
+
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-section">Account</div>', unsafe_allow_html=True)
+
+        if st.button("⎋  Logout", key="sb_logout", use_container_width=True):
+            for k in ["logged_in","token","username","full_name","paper_id","filename",
+                      "uploaded_name","summary","insights","chat_history","menu_open"]:
+                if k in ["logged_in","menu_open"]:
+                    st.session_state[k] = False
+                else:
+                    st.session_state[k] = None
+            st.rerun()
+
+        if st.button("✕  Close", key="sb_close", use_container_width=True):
+            st.session_state.menu_open = False
+            st.rerun()
+
+
+# ════════════════════════════════════════════════
+# HAMBURGER BUTTON — fixed top-left  (st-key-ham_btn targets it via CSS)
+# ════════════════════════════════════════════════
+ham_icon = "✕" if st.session_state.menu_open else "☰"
+if st.button(ham_icon, key="ham_btn"):
+    st.session_state.menu_open = not st.session_state.menu_open
+    st.rerun()
+
+# ════════════════════════════════════════════════
+# THEME TOGGLE — fixed top-right  (st-key-theme_toggle targets it via CSS)
+# ════════════════════════════════════════════════
 if st.button(toggle_icon, key="theme_toggle"):
     st.session_state.dark_mode = not st.session_state.dark_mode
     st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
-
 
 
 # ════════════════════════════════════════════════
@@ -447,16 +658,9 @@ if not st.session_state.logged_in:
 
     st.stop()
 
-# LOGOUT button in nav area
-_, logout_col = st.columns([7, 1])
-with logout_col:
-    if st.button("⎋logout", key="nav_logout"):
-        for k in ["logged_in", "token", "username", "full_name", "paper_id", "filename"]:
-            st.session_state[k] = False if k == "logged_in" else None
-        st.rerun()
 
 # ════════════════════════════════════════════════
-# MAIN APP
+# MAIN APP (logged in)
 # ════════════════════════════════════════════════
 
 # NAV BAR
@@ -476,12 +680,9 @@ st.markdown(f"""
     <span class="tag">FAISS</span>
     {status}
     <span class="tag tag-on">👤 &nbsp;{st.session_state.username}</span>
-    <span class="tag" style="cursor:pointer;" id="logout-tag"></span>
   </div>
 </div>
 """, unsafe_allow_html=True)
-
-
 
 # GREETING
 _hour  = datetime.now().hour
