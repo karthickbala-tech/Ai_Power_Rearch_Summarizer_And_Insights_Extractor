@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import requests
 import uuid
 from datetime import datetime
@@ -75,8 +76,15 @@ st.markdown(f"""
         radial-gradient(ellipse 70% 45% at 10% 0%, var(--app-g1) 0%, transparent 65%),
         radial-gradient(ellipse 55% 40% at 90% 100%, var(--app-g2) 0%, transparent 60%) !important;
 }}
-#MainMenu, footer, header, .stDeployButton, [data-testid="stSidebarCollapsedControl"] {{
+#MainMenu, footer, header, .stDeployButton {{
     display:none !important; visibility:hidden !important;
+}}
+/* Keep collapsed control in DOM so JS can click it — just hide visually */
+[data-testid="stSidebarCollapsedControl"] {{
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: fixed !important;
+    top: -999px !important;
 }}
 
 /* ══════════════════════════════════════
@@ -87,7 +95,17 @@ st.markdown(f"""
     border-right: 1px solid var(--sb-border) !important;
 }}
 [data-testid="stSidebar"] > div:first-child {{
-    padding-top: 1rem !important;
+    padding-top: 0.8rem !important;
+    padding-left: 0.6rem !important;
+    padding-right: 0.6rem !important;
+}}
+/* Collapse default Streamlit spacing between sidebar elements */
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
+    gap: 0.15rem !important;
+}}
+[data-testid="stSidebar"] .stButton {{
+    margin-bottom: 0 !important;
+    width: 100% !important;
 }}
 .sidebar-header {{
     font-size: 1rem;
@@ -110,33 +128,45 @@ st.markdown(f"""
     margin: 0.9rem 0 0.4rem 0;
     padding-left: 2px;
 }}
-/* Sidebar buttons — override global styles */
-[data-testid="stSidebar"] .stButton > button,
-[data-testid="stSidebar"] .stButton > button * {{
+/* Sidebar buttons — beat global styles with high-specificity selectors */
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] .stButton > button,
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] .stButton > button * {{
     background: transparent !important;
+    background-image: none !important;
     border: 1px solid transparent !important;
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     color: var(--sb-text) !important;
-    font-size: 0.85rem !important;
+    font-size: 0.78rem !important;
     font-weight: 500 !important;
-    padding: 0.55rem 0.9rem !important;
+    padding: 0.35rem 0.75rem !important;
     width: 100% !important;
+    min-height: unset !important;
+    height: auto !important;
+    line-height: 1.4 !important;
     text-align: left !important;
     box-shadow: none !important;
     transform: none !important;
-    transition: all 0.15s !important;
+    transition: background 0.15s, color 0.15s !important;
 }}
-[data-testid="stSidebar"] .stButton > button:hover,
-[data-testid="stSidebar"] .stButton > button:hover * {{
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] .stButton > button:hover,
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] .stButton > button:hover * {{
     background: var(--sb-hover) !important;
+    background-image: none !important;
     border-color: var(--border-md) !important;
     color: var(--primary) !important;
     transform: none !important;
+    box-shadow: none !important;
 }}
-/* Sidebar logout button — red tint */
-[data-testid="stSidebar"] .stButton > button[data-testid*="sb_logout"],
-[data-testid="stSidebar"] .sb-logout-btn > div > button {{
+/* Logout red tint */
+[data-testid="stSidebar"] .st-key-sb_logout button,
+[data-testid="stSidebar"] .st-key-sb_logout button * {{
     color: #C47B9B !important;
+}}
+[data-testid="stSidebar"] .st-key-sb_logout button:hover,
+[data-testid="stSidebar"] .st-key-sb_logout button:hover * {{
+    color: #e05a85 !important;
+    background: rgba(196,123,155,0.1) !important;
+    background-image: none !important;
 }}
 /* User info card in sidebar */
 .sb-user-card {{
@@ -560,6 +590,33 @@ if st.session_state.menu_open:
             st.session_state.menu_open = False
             st.rerun()
 
+
+# ════════════════════════════════════════════════
+# JS — sync Streamlit's sidebar open/close with menu_open flag.
+# Must use components.html() — st.markdown() strips <script> tags.
+# Runs in a tiny hidden iframe that can reach window.parent DOM.
+# ════════════════════════════════════════════════
+_should_open = "true" if st.session_state.menu_open else "false"
+components.html(f"""
+<script>
+(function() {{
+    var target = {_should_open};
+    function syncSidebar() {{
+        var sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
+        if (!sidebar) {{ setTimeout(syncSidebar, 80); return; }}
+        var isOpen = sidebar.getAttribute('aria-expanded') !== 'false';
+        if (isOpen !== target) {{
+            var btn = window.parent.document.querySelector(
+                '[data-testid="stSidebarCollapsedControl"] button'
+            );
+            if (btn) {{ btn.click(); }}
+            else {{ setTimeout(syncSidebar, 80); }}
+        }}
+    }}
+    syncSidebar();
+}})();
+</script>
+""", height=0)
 
 # ════════════════════════════════════════════════
 # HAMBURGER BUTTON — fixed top-left  (st-key-ham_btn targets it via CSS)
