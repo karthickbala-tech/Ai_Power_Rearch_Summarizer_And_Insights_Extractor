@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="ResearchMind AI",
     page_icon="🔮",
     layout="wide",
-    initial_sidebar_state="expanded",   # MUST be expanded so sidebar DOM renders
+    initial_sidebar_state="expanded",
 )
 
 API = "http://localhost:8000"
@@ -19,12 +19,12 @@ def auth_headers():
 def init():
     defaults = {
         "paper_id": None, "filename": None, "uploaded_name": None,
-        "summary": None, "sum_length": "medium", "insights": {},
+        "summaries": {}, "sum_length": "medium", "insights": {},
         "chat_history": [], "session_id": str(uuid.uuid4()),
         "dark_mode": False, "token": None, "username": None,
         "logged_in": False, "full_name": None, "auth_page": "login",
         "menu_open": False,
-        "sb_section": "main",   # sidebar section: main | history | help | about
+        "sb_section": "main",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -77,197 +77,224 @@ st.markdown(f"""
         radial-gradient(ellipse 70% 45% at 10% 0%, var(--app-g1) 0%, transparent 65%),
         radial-gradient(ellipse 55% 40% at 90% 100%, var(--app-g2) 0%, transparent 60%) !important;
 }}
-#MainMenu, footer, header, .stDeployButton {{
-    display:none !important; visibility:hidden !important;
-}}
+#MainMenu, footer, header, .stDeployButton {{ display:none !important; visibility:hidden !important; }}
 
-/* ══════════════════════════════════
-   SIDEBAR
-══════════════════════════════════ */
-[data-testid="stSidebarCollapsedControl"] {{
-    display: none !important;
-}}
+/* ══════════════════════════════════════════
+   SIDEBAR — overlay drawer, never pushes content
+══════════════════════════════════════════ */
+[data-testid="stSidebarCollapsedControl"] {{ display:none !important; }}
+
 [data-testid="stSidebar"] {{
     transform: translateX(-105%);
     visibility: hidden;
-    transition: transform 0.26s cubic-bezier(0.4,0,0.2,1), visibility 0.26s;
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1), visibility 0.28s;
     background: var(--sb-bg) !important;
     border-right: 1px solid var(--sb-border) !important;
-    min-width: 240px !important;
-    max-width: 280px !important;
+    width: 272px !important;
+    min-width: 272px !important;
+    max-width: 272px !important;
     position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
+    top: 0 !important; left: 0 !important;
     height: 100vh !important;
     z-index: 99999 !important;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.18) !important;
+    box-shadow: 8px 0 40px rgba(0,0,0,0.22) !important;
 }}
-.appview-container {{
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-}}
-section[data-testid="stMain"] {{
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-    width: 100% !important;
-}}
+/* Main content never shifts */
+.appview-container {{ margin-left:0 !important; padding-left:0 !important; }}
+section[data-testid="stMain"] {{ margin-left:0 !important; padding-left:0 !important; width:100% !important; }}
+
+/* Sidebar inner scroll area */
 [data-testid="stSidebar"] > div:first-child {{
-    padding-top: 1rem !important;
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
+    padding: 0 !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
 }}
+
+/* Kill ALL default Streamlit sidebar spacing */
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
-    gap: 0.1rem !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }}
-[data-testid="stSidebar"] .stButton {{
-    margin-bottom: 0 !important;
+[data-testid="stSidebar"] .stButton,
+[data-testid="stSidebar"] .element-container,
+[data-testid="stSidebar"] .stMarkdown {{
+    margin: 0 !important;
+    padding: 0 !important;
     width: 100% !important;
 }}
-.sidebar-header {{
-    font-size: 0.95rem; font-weight: 800;
-    color: var(--text-1) !important;
-    padding: 0.3rem 0 0.1rem 0.2rem;
-    letter-spacing: -0.02em;
-}}
-.sidebar-divider {{
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--sb-border), transparent);
-    margin: 0.6rem 0;
-}}
-.sidebar-section {{
-    font-size: 0.58rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.14em;
-    color: var(--text-4) !important;
-    margin: 0.7rem 0 0.25rem 0.2rem;
-}}
-.sb-user-card {{
-    background: var(--bg-elevated); border: 1px solid var(--border-md);
-    border-radius: 10px; padding: 0.55rem 0.8rem; margin-bottom: 0.25rem;
-}}
-.sb-user-name {{ font-size:0.82rem; font-weight:700; color:var(--text-1) !important; }}
-.sb-user-tag {{
-    font-size:0.62rem; color:var(--text-4) !important;
-    font-family:'JetBrains Mono',monospace !important; margin-top:1px;
-}}
-.sb-paper-card {{
-    background: var(--primary-dim); border: 1px solid var(--border-md);
-    border-radius: 8px; padding: 0.45rem 0.75rem;
-    font-size: 0.7rem; color: var(--text-3) !important;
-    word-break: break-all; line-height: 1.4;
-}}
-/* Sidebar buttons */
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] .stButton > button,
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] .stButton > button * {{
+
+/* ── Base sidebar nav button ── */
+[data-testid="stSidebar"] .stButton > button {{
     background: transparent !important;
     background-image: none !important;
-    border: 1px solid transparent !important;
-    border-radius: 7px !important;
+    border: none !important;
+    border-radius: 0 !important;
+    border-left: 3px solid transparent !important;
     color: var(--sb-text) !important;
-    font-size: 0.78rem !important;
+    font-size: 0.83rem !important;
     font-weight: 500 !important;
-    padding: 0.3rem 0.7rem !important;
+    /* KEY: explicit padding gives breathing room between label + button */
+    padding: 0.62rem 1.1rem 0.62rem 1rem !important;
     width: 100% !important;
-    min-height: unset !important;
+    min-height: 40px !important;
     height: auto !important;
-    line-height: 1.4 !important;
+    line-height: 1.3 !important;
     text-align: left !important;
     box-shadow: none !important;
     transform: none !important;
-    transition: background 0.12s, color 0.12s !important;
+    transition: background 0.14s, color 0.14s, border-color 0.14s !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.55rem !important;
+    white-space: nowrap !important;
 }}
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] .stButton > button:hover,
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] .stButton > button:hover * {{
+[data-testid="stSidebar"] .stButton > button:hover {{
     background: var(--sb-hover) !important;
     background-image: none !important;
-    border-color: var(--border-md) !important;
     color: var(--primary) !important;
+    border-left-color: var(--primary) !important;
     transform: none !important;
     box-shadow: none !important;
 }}
-[data-testid="stSidebar"] .st-key-sb_logout button,
-[data-testid="stSidebar"] .st-key-sb_logout button * {{
+[data-testid="stSidebar"] .stButton > button p,
+[data-testid="stSidebar"] .stButton > button span {{
+    color: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}}
+
+/* ── Logout ── */
+[data-testid="stSidebar"] .st-key-sb_logout button {{
+    color: #C47B9B !important;
+    border-top: 1px solid var(--sb-border) !important;
+    margin-top: 4px !important;
+}}
+[data-testid="stSidebar"] .st-key-sb_logout button:hover {{
+    background: rgba(196,123,155,0.08) !important;
+    color: #e05a85 !important;
+    border-left-color: #e05a85 !important;
+}}
+
+/* ── Close button ── */
+[data-testid="stSidebar"] .st-key-sb_close button {{
+    color: var(--text-4) !important;
+    font-size: 0.76rem !important;
+}}
+[data-testid="stSidebar"] .st-key-sb_close button:hover {{
+    color: var(--primary) !important;
+}}
+
+/* ── Back buttons ── */
+[data-testid="stSidebar"] .st-key-hist_back button,
+[data-testid="stSidebar"] .st-key-help_back button,
+[data-testid="stSidebar"] .st-key-about_back button {{
+    color: var(--text-4) !important;
+    font-size: 0.76rem !important;
+    border-top: 1px solid var(--sb-border) !important;
+    padding-top: 0.6rem !important;
+}}
+[data-testid="stSidebar"] .st-key-hist_back button:hover,
+[data-testid="stSidebar"] .st-key-help_back button:hover,
+[data-testid="stSidebar"] .st-key-about_back button:hover {{
+    color: var(--primary) !important;
+}}
+
+/* ── History action buttons ── */
+[data-testid="stSidebar"] .st-key-hist_new button,
+[data-testid="stSidebar"] .st-key-hist_clear button {{
+    background: var(--bg-elevated) !important;
+    border: 1px solid var(--border-md) !important;
+    border-left: 1px solid var(--border-md) !important;
+    border-radius: 8px !important;
+    padding: 0.45rem 0.7rem !important;
+    font-size: 0.74rem !important;
+    color: var(--text-2) !important;
+    min-height: unset !important;
+    justify-content: center !important;
+}}
+[data-testid="stSidebar"] .st-key-hist_new button:hover {{
+    background: var(--primary-dim) !important;
+    border-color: var(--primary) !important;
+    border-left-color: var(--primary) !important;
+    color: var(--primary) !important;
+}}
+[data-testid="stSidebar"] .st-key-hist_clear button:hover {{
+    background: rgba(196,123,155,0.08) !important;
+    border-color: #C47B9B !important;
+    border-left-color: #C47B9B !important;
     color: #C47B9B !important;
 }}
-[data-testid="stSidebar"] .st-key-sb_logout button:hover,
-[data-testid="stSidebar"] .st-key-sb_logout button:hover * {{
-    color: #e05a85 !important;
-    background: rgba(196,123,155,0.08) !important;
-    background-image: none !important;
-}}
 
-/* ══════════════════════════════════
+/* ══════════════════════════════════════════
    HAMBURGER — fixed top-left
-══════════════════════════════════ */
+══════════════════════════════════════════ */
 .st-key-ham_btn {{
-    position: fixed !important; top: 8px !important; left: 8px !important;
-    z-index: 999999 !important; height: auto !important; width: auto !important;
-    margin: 0 !important; padding: 0 !important;
+    position:fixed !important; top:8px !important; left:8px !important;
+    z-index:999999 !important; height:auto !important; width:auto !important;
+    margin:0 !important; padding:0 !important;
 }}
 .st-key-ham_btn button {{
-    background: var(--ham-bg) !important;
-    border: 1.5px solid var(--ham-border) !important;
-    border-radius: 10px !important;
-    width: 36px !important; height: 36px !important; min-width: unset !important;
-    padding: 0 !important; font-size: 1.05rem !important;
-    box-shadow: 0 2px 12px var(--primary-glow) !important;
-    cursor: pointer !important; display: flex !important;
-    align-items: center !important; justify-content: center !important;
-    transform: none !important; color: var(--text-1) !important;
-    backdrop-filter: blur(12px) !important; transition: all 0.18s !important;
+    background:var(--ham-bg) !important; border:1.5px solid var(--ham-border) !important;
+    border-radius:10px !important; width:36px !important; height:36px !important;
+    min-width:unset !important; padding:0 !important; font-size:1.05rem !important;
+    box-shadow:0 2px 12px var(--primary-glow) !important; cursor:pointer !important;
+    display:flex !important; align-items:center !important; justify-content:center !important;
+    transform:none !important; color:var(--text-1) !important;
+    backdrop-filter:blur(12px) !important; transition:all 0.18s !important;
 }}
 .st-key-ham_btn button:hover {{
-    border-color: var(--primary) !important;
-    background: var(--primary-dim) !important;
-    transform: scale(1.05) !important;
+    border-color:var(--primary) !important; background:var(--primary-dim) !important;
+    transform:scale(1.05) !important;
 }}
 .st-key-ham_btn button p, .st-key-ham_btn button span {{
-    font-size: 1rem !important; line-height: 1 !important; color: var(--text-1) !important;
+    font-size:1rem !important; line-height:1 !important; color:var(--text-1) !important;
 }}
 
-/* ══════════════════════════════════
+/* ══════════════════════════════════════════
    THEME TOGGLE — fixed top-right
-══════════════════════════════════ */
+══════════════════════════════════════════ */
 .st-key-theme_toggle {{
-    position: fixed !important; top: 8px !important; right: 8px !important;
-    z-index: 999999 !important; height: auto !important; width: auto !important;
-    margin: 0 !important; padding: 0 !important;
+    position:fixed !important; top:8px !important; right:8px !important;
+    z-index:999999 !important; height:auto !important; width:auto !important;
+    margin:0 !important; padding:0 !important;
 }}
 .st-key-theme_toggle button {{
-    background: var(--ham-bg) !important;
-    border: 1.5px solid var(--ham-border) !important;
-    border-radius: 50% !important;
-    width: 36px !important; height: 36px !important; min-width: unset !important;
-    padding: 0 !important; font-size: 1rem !important;
-    box-shadow: 0 2px 10px var(--primary-glow) !important;
-    cursor: pointer !important; display: flex !important;
-    align-items: center !important; justify-content: center !important;
-    transform: none !important; backdrop-filter: blur(12px) !important;
-    transition: all 0.18s !important;
+    background:var(--ham-bg) !important; border:1.5px solid var(--ham-border) !important;
+    border-radius:50% !important; width:36px !important; height:36px !important;
+    min-width:unset !important; padding:0 !important; font-size:1rem !important;
+    box-shadow:0 2px 10px var(--primary-glow) !important; cursor:pointer !important;
+    display:flex !important; align-items:center !important; justify-content:center !important;
+    transform:none !important; backdrop-filter:blur(12px) !important; transition:all 0.18s !important;
 }}
 .st-key-theme_toggle button:hover {{
-    border-color: var(--primary) !important;
-    background: var(--primary-dim) !important;
-    transform: scale(1.1) !important;
+    border-color:var(--primary) !important; background:var(--primary-dim) !important;
+    transform:scale(1.1) !important;
 }}
 .st-key-theme_toggle button p, .st-key-theme_toggle button span {{
-    font-size: 1rem !important; line-height: 1 !important;
+    font-size:1rem !important; line-height:1 !important;
 }}
 
-/* ══════════════════════════════════
-   LAYOUT
-══════════════════════════════════ */
+/* ══════════════════════════════════════════
+   LAYOUT / MAIN CONTENT
+══════════════════════════════════════════ */
 .block-container {{
-    padding-top: 0.6rem !important; padding-left: 2rem !important;
-    padding-right: 2rem !important; padding-bottom: 6rem !important;
-    max-width: 1100px !important;
+    padding-top:0.6rem !important; padding-left:2rem !important;
+    padding-right:2rem !important; padding-bottom:6rem !important;
+    max-width:1100px !important;
 }}
 ::-webkit-scrollbar {{ width:3px; }}
 ::-webkit-scrollbar-track {{ background:var(--scbar-track); }}
 ::-webkit-scrollbar-thumb {{ background:var(--scbar-thumb); border-radius:4px; }}
 
-/* ══════════════════════════════════
-   NAV BAR
-══════════════════════════════════ */
+/* NAV BAR */
 .topnav {{
     display:flex; align-items:center; justify-content:space-between;
     background:var(--nav-bg); border:1px solid var(--border-md);
@@ -387,7 +414,7 @@ section[data-testid="stMain"] {{
 .stSpinner > div {{ border-top-color:var(--primary) !important; }}
 [data-testid="stSpinner"] * {{ color:var(--text-2) !important; }}
 
-/* RESULT / INSIGHT / CHAT */
+/* CARDS */
 .result-box {{
     background:var(--bg-card); border:1px solid var(--border-md); border-left:4px solid var(--primary);
     border-radius:var(--r); padding:1.4rem 1.6rem; font-size:0.9rem; line-height:1.9;
@@ -454,6 +481,26 @@ section[data-testid="stMain"] {{
 """, unsafe_allow_html=True)
 
 
+# ─────────────────────────────────────────────────────
+# helper: section label rendered as HTML (not a button)
+# ─────────────────────────────────────────────────────
+def sb_label(text):
+    st.markdown(f"""
+    <div style="padding:0.9rem 1.1rem 0.35rem;
+                font-size:0.57rem; font-weight:700;
+                text-transform:uppercase; letter-spacing:0.15em;
+                color:var(--text-4); line-height:1;">
+        {text}
+    </div>""", unsafe_allow_html=True)
+
+def sb_divider():
+    st.markdown("""
+    <div style="height:1px;
+                background:linear-gradient(90deg,transparent,var(--sb-border),transparent);
+                margin:0.5rem 0;"></div>
+    """, unsafe_allow_html=True)
+
+
 # ══════════════════════════════════════════════════════
 # SIDEBAR
 # ══════════════════════════════════════════════════════
@@ -461,199 +508,282 @@ with st.sidebar:
     if st.session_state.logged_in:
         _uname = st.session_state.username or ""
         _fname = st.session_state.full_name or _uname
+        sec    = st.session_state.sb_section
 
-        # ── USER CARD (always shown) ──
-        st.markdown('<div class="sidebar-header">🔮 ResearchMind AI</div>', unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        # ── Branded header (always visible) ──────────────────
         st.markdown(f"""
-        <div class="sb-user-card">
-            <div class="sb-user-name">👤 &nbsp;{_fname}</div>
-            <div class="sb-user-tag">@{_uname}</div>
-        </div>""", unsafe_allow_html=True)
+        <div style="background:linear-gradient(135deg,rgba(92,61,143,0.85) 0%,rgba(45,27,71,0.95) 100%);
+                    padding:1.1rem 1.1rem 1rem; flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:0.75rem;">
+                <div style="width:34px;height:34px;background:rgba(255,255,255,0.15);
+                            border-radius:8px;display:flex;align-items:center;
+                            justify-content:center;font-size:15px;flex-shrink:0;">🔮</div>
+                <div>
+                    <div style="font-size:0.8rem;font-weight:800;color:#fff;
+                                letter-spacing:-0.01em;line-height:1.2;">ResearchMind AI</div>
+                    <div style="font-size:0.58rem;color:rgba(255,255,255,0.55);
+                                font-family:'JetBrains Mono',monospace;margin-top:1px;">
+                        AI Research Assistant</div>
+                </div>
+            </div>
+            <div style="background:rgba(255,255,255,0.1);border-radius:8px;
+                        padding:0.45rem 0.65rem;display:flex;align-items:center;gap:8px;">
+                <div style="width:26px;height:26px;background:rgba(255,255,255,0.18);
+                            border-radius:50%;display:flex;align-items:center;
+                            justify-content:center;font-size:11px;flex-shrink:0;">👤</div>
+                <div style="min-width:0;">
+                    <div style="font-size:0.74rem;font-weight:700;color:#fff;
+                                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                                line-height:1.3;">{_fname}</div>
+                    <div style="font-size:0.59rem;color:rgba(255,255,255,0.5);
+                                font-family:'JetBrains Mono',monospace;">@{_uname}</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        sec = st.session_state.sb_section
-
-        # ══════════════════════════════
+        # ════════════════════
         # MAIN MENU
-        # ══════════════════════════════
+        # ════════════════════
         if sec == "main":
+
+            # Active paper pill
             if st.session_state.paper_id:
-                st.markdown('<div class="sidebar-section">Active Paper</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="sb-paper-card">📄 &nbsp;{st.session_state.filename}</div>', unsafe_allow_html=True)
-
-            st.markdown('<div class="sidebar-section">Navigation</div>', unsafe_allow_html=True)
-
-            if st.button("💬  Chat History", key="sb_history", use_container_width=True):
-                st.session_state.sb_section = "history"
-                st.rerun()
-
-            if st.button("📄  New Upload", key="sb_new_upload", use_container_width=True):
-                for k in ["paper_id","filename","uploaded_name","summary","insights","chat_history"]:
-                    st.session_state[k] = None if k not in ["insights","chat_history"] else ({} if k=="insights" else [])
-                st.session_state.session_id = str(uuid.uuid4())
-                st.session_state.menu_open  = False
-                st.rerun()
-
-            if st.button("🗑️  Clear Chat", key="sb_clear_chat", use_container_width=True):
-                st.session_state.chat_history = []
-                st.session_state.session_id   = str(uuid.uuid4())
-                st.session_state.menu_open    = False
-                st.rerun()
-
-            st.markdown('<div class="sidebar-section">Info</div>', unsafe_allow_html=True)
-
-            if st.button("❓  Help", key="sb_help", use_container_width=True):
-                st.session_state.sb_section = "help"
-                st.rerun()
-
-            if st.button("ℹ️  About", key="sb_about", use_container_width=True):
-                st.session_state.sb_section = "about"
-                st.rerun()
-
-            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="sidebar-section">Account</div>', unsafe_allow_html=True)
-
-            if st.button("⎋  Logout", key="sb_logout", use_container_width=True):
-                for k in ["logged_in","token","username","full_name","paper_id","filename",
-                          "uploaded_name","summary","insights","chat_history","menu_open"]:
-                    st.session_state[k] = False if k in ["logged_in","menu_open"] else None
-                st.session_state.sb_section = "main"
-                st.rerun()
-
-            if st.button("✕  Close", key="sb_close", use_container_width=True):
-                st.session_state.menu_open = False
-                st.rerun()
-
-        # ══════════════════════════════
-        # CHAT HISTORY SECTION
-        # ══════════════════════════════
-        elif sec == "history":
-            st.markdown("<div style='font-size:0.78rem;font-weight:800;margin-bottom:0.6rem;'>💬 Chat History</div>", unsafe_allow_html=True)
-
-            history = st.session_state.get("chat_history", [])
-            if not history:
-                st.markdown("""
-                <div style='font-size:0.74rem;color:var(--text-4);text-align:center;
-                            padding:1.5rem 0;line-height:1.8;'>
-                    No chat history yet.<br>Upload a paper and start chatting!
-                </div>""", unsafe_allow_html=True)
-            else:
-                for msg in history:
-                    role_label = "You" if msg["role"] == "user" else "AI"
-                    role_color = "var(--primary)" if msg["role"] == "user" else "var(--text-3)"
-                    short_text = msg["content"][:80] + "..." if len(msg["content"]) > 80 else msg["content"]
-                    st.markdown(f"""
-                    <div style="background:var(--bg-surface);border:1px solid var(--border);
-                                border-radius:8px;padding:0.45rem 0.65rem;margin-bottom:0.35rem;">
-                        <div style="color:{role_color};font-weight:700;font-size:0.58rem;
-                                    text-transform:uppercase;margin-bottom:0.15rem;">{role_label}</div>
-                        <div style="font-size:0.72rem;color:var(--text-2);line-height:1.5;">{short_text}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("✚ New Chat", key="hist_new", use_container_width=True):
-                    st.session_state.chat_history  = []
-                    st.session_state.session_id    = str(uuid.uuid4())
-                    st.session_state.paper_id      = None
-                    st.session_state.filename      = None
-                    st.session_state.uploaded_name = None
-                    st.session_state.summary       = None
-                    st.session_state.insights      = {}
-                    st.session_state.sb_section    = "main"
-                    st.rerun()
-            with col2:
-                if st.button("🗑 Clear", key="hist_clear", use_container_width=True):
-                    st.session_state.chat_history = []
-                    st.session_state.session_id   = str(uuid.uuid4())
-                    st.rerun()
-
-            if st.button("← Back", key="hist_back", use_container_width=True):
-                st.session_state.sb_section = "main"
-                st.rerun()
-
-        # ══════════════════════════════
-        # HELP SECTION
-        # ══════════════════════════════
-        elif sec == "help":
-            st.markdown("<div style='font-size:0.78rem;font-weight:800;margin-bottom:0.6rem;'>❓ How to Use</div>", unsafe_allow_html=True)
-
-            help_items = [
-                ("1️⃣", "Login / Register",  "Create an account or sign in to access the app."),
-                ("2️⃣", "Upload PDF",         "Click the upload area and select your research paper. Max 200MB PDF only."),
-                ("3️⃣", "Summary Tab",        "Choose Short, Medium or Long. Click Generate Summary to get an AI-written summary."),
-                ("4️⃣", "Insights Tab",       "Type specific questions one per line. Click Extract Insights to get precise answers from the paper."),
-                ("5️⃣", "Chat Tab",           "Ask any follow-up question. The AI remembers the full conversation and answers from your paper."),
-                ("6️⃣", "New Chat",           "Menu → Chat History → New Chat to reset everything and upload a fresh paper."),
-                ("7️⃣", "Clear Chat",         "Menu → Clear Chat (or Chat History → Clear) to erase messages only. Paper stays loaded."),
-                ("8️⃣", "Theme Toggle",       "Click ☀️/🌙 button top-right to switch light and dark mode anytime."),
-                ("9️⃣", "Download Results",   "In Summary and Insights tabs, click Download .txt to save your results."),
-                ("🔟", "Logout",             "Menu → Logout to securely sign out and clear all session data."),
-            ]
-            for icon, title, desc in help_items:
                 st.markdown(f"""
-                <div style="background:var(--bg-surface);border:1px solid var(--border);
-                            border-radius:8px;padding:0.5rem 0.7rem;margin-bottom:0.35rem;">
-                    <div style="font-size:0.68rem;font-weight:700;color:var(--primary);
-                                margin-bottom:0.1rem;">{icon} {title}</div>
-                    <div style="font-size:0.68rem;color:var(--text-2);line-height:1.5;">{desc}</div>
+                <div style="margin:0.7rem 0.9rem 0;background:var(--primary-dim);
+                            border:1px solid var(--border-md);border-radius:8px;
+                            padding:0.45rem 0.7rem;display:flex;align-items:center;gap:7px;">
+                    <span style="font-size:0.8rem;flex-shrink:0;">📄</span>
+                    <div style="min-width:0;">
+                        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;
+                                    letter-spacing:0.1em;color:var(--text-4);margin-bottom:1px;
+                                    line-height:1;">Active Paper</div>
+                        <div style="font-size:0.7rem;color:var(--primary);font-weight:600;
+                                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                                    line-height:1.3;">{st.session_state.filename}</div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-            if st.button("← Back", key="help_back", use_container_width=True):
-                st.session_state.sb_section = "main"
-                st.rerun()
+            sb_label("Navigation")
 
-        # ══════════════════════════════
-        # ABOUT SECTION
-        # ══════════════════════════════
-        elif sec == "about":
-            st.markdown("<div style='font-size:0.78rem;font-weight:800;margin-bottom:0.6rem;'>ℹ️ About</div>", unsafe_allow_html=True)
+            if st.button("💬  Chat History",  key="sb_history",    use_container_width=True):
+                st.session_state.sb_section = "history"; st.rerun()
+            if st.button("📄  New Upload",    key="sb_new_upload", use_container_width=True):
+                for k in ["paper_id","filename","uploaded_name","insights","chat_history"]:
+                    st.session_state[k] = None if k not in ["insights","chat_history"] else ({} if k=="insights" else [])
+                st.session_state.summaries   = {}
+                st.session_state.session_id  = str(uuid.uuid4())
+                st.session_state.menu_open   = False; st.rerun()
+            if st.button("🗑️  Clear Chat",    key="sb_clear_chat", use_container_width=True):
+                st.session_state.chat_history = []
+                st.session_state.session_id   = str(uuid.uuid4())
+                st.session_state.menu_open    = False; st.rerun()
+
+            sb_divider()
+            sb_label("Information")
+
+            if st.button("❓  Help",           key="sb_help",       use_container_width=True):
+                st.session_state.sb_section = "help"; st.rerun()
+            if st.button("ℹ️  About",          key="sb_about",      use_container_width=True):
+                st.session_state.sb_section = "about"; st.rerun()
+
+            sb_divider()
+            sb_label("Account")
+
+            if st.button("⎋  Logout",          key="sb_logout",     use_container_width=True):
+                for k in ["logged_in","token","username","full_name","paper_id","filename",
+                          "uploaded_name","summaries","insights","chat_history","menu_open"]:
+                    st.session_state[k] = False if k in ["logged_in","menu_open"] else (
+                        {} if k in ["summaries","insights"] else ([] if k=="chat_history" else None))
+                st.session_state.sb_section = "main"; st.rerun()
+
+            if st.button("✕  Close Menu",      key="sb_close",      use_container_width=True):
+                st.session_state.menu_open = False; st.rerun()
+
+            # Pinned footer
             st.markdown("""
-            <div style="background:var(--bg-surface);border:1px solid var(--border);
-                        border-radius:8px;padding:0.7rem;margin-bottom:0.6rem;
-                        font-size:0.72rem;color:var(--text-2);line-height:1.7;">
-                <b style="color:var(--primary);">ResearchMind AI</b> is an AI-powered
-                research paper assistant. Upload any PDF and get instant summaries,
-                extract precise insights, and chat with your paper using RAG technology.
-            </div>
-            <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:0.12em;color:var(--text-4);margin:0.5rem 0 0.3rem;">TECH STACK</div>
+            <div style="margin-top:auto;padding:0.75rem 1.1rem;
+                        border-top:1px solid var(--sb-border);
+                        font-size:0.57rem;color:var(--text-4);letter-spacing:0.06em;
+                        text-align:center;font-family:'JetBrains Mono',monospace;">
+                RESEARCHMIND AI · v2.0 · 2026
+            </div>""", unsafe_allow_html=True)
+
+        # ════════════════════
+        # CHAT HISTORY
+        # ════════════════════
+        elif sec == "history":
+            st.markdown("""
+            <div style="padding:0.85rem 1.1rem 0.7rem;border-bottom:1px solid var(--sb-border);">
+                <div style="font-size:0.88rem;font-weight:800;color:var(--text-1);
+                            line-height:1.2;margin-bottom:3px;">💬 Chat History</div>
+                <div style="font-size:0.67rem;color:var(--text-4);">
+                    Your conversation with the AI</div>
+            </div>""", unsafe_allow_html=True)
+
+            history = st.session_state.get("chat_history", [])
+
+            if not history:
+                st.markdown("""
+                <div style="padding:2rem 1.1rem;text-align:center;">
+                    <div style="font-size:2rem;margin-bottom:0.5rem;">💬</div>
+                    <div style="font-size:0.78rem;font-weight:600;color:var(--text-3);
+                                margin-bottom:0.3rem;">No messages yet</div>
+                    <div style="font-size:0.67rem;color:var(--text-4);line-height:1.6;">
+                        Upload a paper and start chatting to see your history here.
+                    </div>
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown('<div style="padding:0.6rem 0.8rem;max-height:320px;overflow-y:auto;">', unsafe_allow_html=True)
+                for msg in history:
+                    is_user   = msg["role"] == "user"
+                    label     = "You" if is_user else "AI"
+                    bg        = "var(--primary-dim)" if is_user else "var(--bg-surface)"
+                    border    = "var(--primary)" if is_user else "var(--border)"
+                    lc        = "var(--primary)" if is_user else "var(--text-3)"
+                    short     = msg["content"][:85] + "…" if len(msg["content"]) > 85 else msg["content"]
+                    st.markdown(f"""
+                    <div style="background:{bg};border:1px solid {border};border-radius:9px;
+                                padding:0.5rem 0.7rem;margin-bottom:0.35rem;">
+                        <div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;
+                                    letter-spacing:0.08em;color:{lc};margin-bottom:3px;">{label}</div>
+                        <div style="font-size:0.71rem;color:var(--text-2);line-height:1.5;">{short}</div>
+                    </div>""", unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            sb_divider()
+
+            # Action buttons side by side
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("✚ New Chat",  key="hist_new",   use_container_width=True):
+                    st.session_state.chat_history = []
+                    st.session_state.session_id   = str(uuid.uuid4())
+                    st.session_state.sb_section   = "main"
+                    st.session_state.menu_open    = False; st.rerun()
+            with c2:
+                if st.button("🗑 Clear",    key="hist_clear", use_container_width=True):
+                    st.session_state.chat_history = []
+                    st.session_state.session_id   = str(uuid.uuid4()); st.rerun()
+
+            if st.button("← Back to Menu", key="hist_back", use_container_width=True):
+                st.session_state.sb_section = "main"; st.rerun()
+
+        # ════════════════════
+        # HELP
+        # ════════════════════
+        elif sec == "help":
+            st.markdown("""
+            <div style="padding:0.85rem 1.1rem 0.7rem;border-bottom:1px solid var(--sb-border);">
+                <div style="font-size:0.88rem;font-weight:800;color:var(--text-1);
+                            line-height:1.2;margin-bottom:3px;">❓ How to Use</div>
+                <div style="font-size:0.67rem;color:var(--text-4);">Step-by-step guide</div>
+            </div>""", unsafe_allow_html=True)
+
+            steps = [
+                ("1",  "Login or Register",    "Create a free account or sign in."),
+                ("2",  "Upload a PDF",          "Select any research paper (max 200MB)."),
+                ("3",  "Generate Summary",      "Choose Short / Medium / Long and generate."),
+                ("4",  "Extract Insights",      "Type questions one per line, click Extract."),
+                ("5",  "Chat with Paper",        "Ask anything — AI answers from your PDF."),
+                ("6",  "New Upload",             "Menu → New Upload to load a fresh paper."),
+                ("7",  "Clear Chat",             "Menu → Clear Chat to erase messages only."),
+                ("8",  "Download Results",       "Click ⬇ Download .txt to save output."),
+                ("9",  "Switch Theme",           "Click ☀️ / 🌙 (top-right) to toggle theme."),
+                ("10", "Logout",                 "Menu → Logout clears all session data."),
+            ]
+            st.markdown('<div style="padding:0.5rem 0.8rem;">', unsafe_allow_html=True)
+            for num, title, desc in steps:
+                st.markdown(f"""
+                <div style="display:flex;gap:9px;padding:0.5rem 0;
+                            border-bottom:1px solid var(--sb-border);">
+                    <div style="width:20px;height:20px;background:var(--primary);
+                                border-radius:50%;display:flex;align-items:center;
+                                justify-content:center;font-size:0.58rem;font-weight:800;
+                                color:var(--bg-page);flex-shrink:0;margin-top:1px;">{num}</div>
+                    <div>
+                        <div style="font-size:0.72rem;font-weight:700;color:var(--text-1);
+                                    margin-bottom:2px;line-height:1.2;">{title}</div>
+                        <div style="font-size:0.65rem;color:var(--text-3);
+                                    line-height:1.45;">{desc}</div>
+                    </div>
+                </div>""", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            if st.button("← Back to Menu", key="help_back", use_container_width=True):
+                st.session_state.sb_section = "main"; st.rerun()
+
+        # ════════════════════
+        # ABOUT
+        # ════════════════════
+        elif sec == "about":
+            st.markdown("""
+            <div style="padding:0.85rem 1.1rem 0.7rem;border-bottom:1px solid var(--sb-border);">
+                <div style="font-size:0.88rem;font-weight:800;color:var(--text-1);
+                            line-height:1.2;margin-bottom:3px;">ℹ️ About</div>
+                <div style="font-size:0.67rem;color:var(--text-4);">Project details & tech stack</div>
+            </div>""", unsafe_allow_html=True)
+
+            st.markdown("""
+            <div style="padding:0.75rem 0.9rem;">
+                <div style="background:var(--primary-dim);border:1px solid var(--border-md);
+                            border-radius:10px;padding:0.75rem 0.9rem;margin-bottom:0.9rem;">
+                    <div style="font-size:0.78rem;font-weight:800;color:var(--primary);
+                                margin-bottom:0.4rem;line-height:1.2;">🔮 ResearchMind AI</div>
+                    <div style="font-size:0.68rem;color:var(--text-2);line-height:1.65;">
+                        An AI-powered research paper assistant that helps you read,
+                        understand, and extract insights from any PDF instantly using
+                        <b style="color:var(--primary);">RAG technology</b>.
+                    </div>
+                </div>
+
+                <div style="font-size:0.57rem;font-weight:700;text-transform:uppercase;
+                            letter-spacing:0.14em;color:var(--text-4);margin-bottom:0.55rem;">
+                    TECH STACK
+                </div>
             """, unsafe_allow_html=True)
 
             stack = [
                 ("🚀", "FastAPI",               "Backend REST API"),
                 ("🎨", "Streamlit",             "Frontend UI"),
-                ("🤖", "Groq LLaMA 3.3 70B",    "AI Language Model"),
+                ("🤖", "Groq LLaMA 3.3 70B",   "AI Language Model"),
                 ("🔍", "FAISS",                 "Vector Similarity Search"),
                 ("📐", "Sentence Transformers", "Text Embeddings (768D)"),
-                ("🔐", "JWT + bcrypt",           "Secure Authentication"),
+                ("🔐", "JWT + bcrypt",          "Secure Authentication"),
             ]
             for icon, name, desc in stack:
                 st.markdown(f"""
-                <div style="display:flex;align-items:center;gap:8px;padding:0.35rem 0.55rem;
-                            border-radius:6px;background:var(--bg-elevated);margin-bottom:0.25rem;">
-                    <span style="font-size:0.82rem;">{icon}</span>
-                    <div>
-                        <div style="font-size:0.68rem;font-weight:700;color:var(--text-1);">{name}</div>
-                        <div style="font-size:0.6rem;color:var(--text-4);">{desc}</div>
+                <div style="display:flex;align-items:center;gap:9px;
+                            padding:0.4rem 0.6rem;border-radius:8px;
+                            background:var(--bg-elevated);margin-bottom:0.28rem;
+                            border:1px solid var(--border);">
+                    <span style="font-size:0.95rem;flex-shrink:0;">{icon}</span>
+                    <div style="min-width:0;">
+                        <div style="font-size:0.71rem;font-weight:700;
+                                    color:var(--text-1);line-height:1.2;">{name}</div>
+                        <div style="font-size:0.61rem;color:var(--text-4);
+                                    white-space:nowrap;overflow:hidden;
+                                    text-overflow:ellipsis;line-height:1.3;">{desc}</div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                </div>""", unsafe_allow_html=True)
 
             st.markdown("""
-            <div style="text-align:center;font-size:0.6rem;color:var(--text-4);
-                        margin-top:0.7rem;letter-spacing:0.06em;">
-                Built by Karthick Bala · 2026
-            </div>
-            """, unsafe_allow_html=True)
+                <div style="margin-top:0.85rem;padding:0.6rem;border-radius:8px;
+                            background:var(--bg-surface);border:1px solid var(--border);
+                            text-align:center;">
+                    <div style="font-size:0.62rem;color:var(--text-4);line-height:1.75;">
+                        Built with ❤️ by<br>
+                        <b style="color:var(--primary);font-size:0.72rem;">Karthick Bala</b><br>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:0.57rem;">
+                            Anna University · 2026
+                        </span>
+                    </div>
+                </div>
+            </div>""", unsafe_allow_html=True)
 
-            if st.button("← Back", key="about_back", use_container_width=True):
-                st.session_state.sb_section = "main"
-                st.rerun()
+            if st.button("← Back to Menu", key="about_back", use_container_width=True):
+                st.session_state.sb_section = "main"; st.rerun()
 
 
 # ══════════════════════════════════════════════════════
@@ -774,7 +904,7 @@ if not st.session_state.logged_in:
                     elif res.status_code == 409:
                         st.error("Username already exists.")
                     else:
-                        st.error(f"Registration failed: {res.json().get('detail', 'Unknown error')}")
+                        st.error(f"Registration failed: {res.json().get('detail','Unknown error')}")
             st.markdown('<div class="auth-divider"></div>', unsafe_allow_html=True)
             st.markdown('<div class="auth-switch">Already have an account?</div>', unsafe_allow_html=True)
             if st.button("← Back to Sign In", key="go_login"):
@@ -810,8 +940,10 @@ _greet = "Good morning" if _hour < 12 else "Good afternoon" if _hour < 18 else "
 _name  = st.session_state.full_name or st.session_state.username or ""
 st.markdown(f"""
 <style>
-.greeting-text {{ font-size:2.2rem; font-weight:700; font-family:'Playfair Display',serif !important; color:var(--text-1) !important; text-align:center; letter-spacing:-0.01em; margin-bottom:0.4rem; }}
-.greeting-sub {{ font-size:0.82rem; color:var(--text-4) !important; text-align:center; letter-spacing:0.04em; margin-bottom:1.5rem; }}
+.greeting-text {{ font-size:2.2rem; font-weight:700; font-family:'Playfair Display',serif !important;
+    color:var(--text-1) !important; text-align:center; letter-spacing:-0.01em; margin-bottom:0.4rem; }}
+.greeting-sub {{ font-size:0.82rem; color:var(--text-4) !important; text-align:center;
+    letter-spacing:0.04em; margin-bottom:1.5rem; }}
 </style>
 <div class="greeting-text">{_greet}, {_name} 👋</div>
 <div class="greeting-sub">What would you like to research today?</div>
@@ -830,7 +962,7 @@ if uploaded is not None and uploaded.name != st.session_state.uploaded_name:
         st.session_state.paper_id      = data["paper_id"]
         st.session_state.filename      = uploaded.name
         st.session_state.uploaded_name = uploaded.name
-        st.session_state.summary       = None
+        st.session_state.summaries     = {}
         st.session_state.sum_length    = "medium"
         st.session_state.insights      = {}
         st.session_state.chat_history  = []
@@ -846,7 +978,8 @@ if not st.session_state.paper_id:
     <div class="empty">
       <div class="empty-icon">🔮</div>
       <div class="empty-title">Ready when you are</div>
-      <div class="empty-sub">Upload a research paper above to unlock<br>AI-powered Summary, Insights, and Chat.</div>
+      <div class="empty-sub">Upload a research paper above to unlock<br>
+      AI-powered Summary, Insights, and Chat.</div>
     </div>""", unsafe_allow_html=True)
 else:
     tab1, tab2, tab3 = st.tabs(["✦  Summary", "◈  Insights", "◉  Chat"])
@@ -864,30 +997,36 @@ else:
                 if st.button(f"{icon} {name}\n{desc}", key=f"lb_{key}", use_container_width=True,
                              type="primary" if is_active else "secondary"):
                     if not is_active:
-                        st.session_state.sum_length = key; st.session_state.summary = None; st.rerun()
+                        st.session_state.sum_length = key; st.rerun()
         st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-        if st.session_state.summary is None:
+        cur_len     = st.session_state.sum_length
+        summaries   = st.session_state.get("summaries", {})
+        cur_summary = summaries.get(cur_len)
+        if cur_summary is None:
             desc_map = {"short":"3 sentences","medium":"2 paragraphs","long":"5 paragraphs"}
-            if st.button(f"✦ Generate Summary  ·  {desc_map[st.session_state.sum_length]}", key="gen_btn"):
-                with st.spinner(f"Generating {st.session_state.sum_length} summary…"):
-                    res = requests.post(f"{API}/summarize", json={"paper_id": st.session_state.paper_id, "length": st.session_state.sum_length}, headers=auth_headers())
+            if st.button(f"✦ Generate Summary  ·  {desc_map[cur_len]}", key="gen_btn"):
+                with st.spinner(f"Generating {cur_len} summary…"):
+                    res = requests.post(f"{API}/summarize",
+                        json={"paper_id": st.session_state.paper_id, "length": cur_len},
+                        headers=auth_headers())
                 if res.status_code == 200:
-                    st.session_state.summary = res.json().get("summary",""); st.rerun()
+                    st.session_state.summaries[cur_len] = res.json().get("summary",""); st.rerun()
                 else:
                     st.error("Summarization failed.")
         else:
-            badge = st.session_state.sum_length.upper()
-            st.markdown(f'<p style="font-size:0.7rem;color:var(--text-3);margin:0.5rem 0 0.2rem">RESULT <span class="len-badge">{badge}</span></p>', unsafe_allow_html=True)
-            st.markdown(f'<div class="result-box">{st.session_state.summary}</div>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:0.7rem;color:var(--text-3);margin:0.5rem 0 0.2rem">RESULT <span class="len-badge">{cur_len.upper()}</span></p>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-box">{cur_summary}</div>', unsafe_allow_html=True)
             c1, c2, _ = st.columns([1.4, 1.7, 2.9])
             with c1:
                 if st.button("↺ Regenerate", key="regen_btn"):
                     with st.spinner("Regenerating…"):
-                        res = requests.post(f"{API}/summarize", json={"paper_id": st.session_state.paper_id, "length": st.session_state.sum_length}, headers=auth_headers())
+                        res = requests.post(f"{API}/summarize",
+                            json={"paper_id": st.session_state.paper_id, "length": cur_len},
+                            headers=auth_headers())
                     if res.status_code == 200:
-                        st.session_state.summary = res.json().get("summary",""); st.rerun()
+                        st.session_state.summaries[cur_len] = res.json().get("summary",""); st.rerun()
             with c2:
-                st.download_button("⬇ Download .txt", st.session_state.summary, file_name=f"summary_{st.session_state.sum_length}.txt")
+                st.download_button("⬇ Download .txt", cur_summary, file_name=f"summary_{cur_len}.txt")
 
     with tab2:
         st.markdown('<div class="sec-title">Extract Insights</div>', unsafe_allow_html=True)
@@ -899,7 +1038,9 @@ else:
             qs = [q.strip() for q in q_input.split("\n") if q.strip()]
             if qs:
                 with st.spinner(f"Extracting insights from {len(qs)} question(s)…"):
-                    res = requests.post(f"{API}/insights", json={"paper_id": st.session_state.paper_id, "questions": qs}, headers=auth_headers())
+                    res = requests.post(f"{API}/insights",
+                        json={"paper_id": st.session_state.paper_id, "questions": qs},
+                        headers=auth_headers())
                 if res.status_code == 200:
                     st.session_state.insights = res.json().get("insights",{}); st.rerun()
                 else:
@@ -941,7 +1082,11 @@ else:
             if user_msg.strip():
                 st.session_state.chat_history.append({"role":"user","content":user_msg.strip()})
                 with st.spinner("Reading paper and composing answer…"):
-                    res = requests.post(f"{API}/chat", json={"session_id": st.session_state.session_id, "message": user_msg.strip(), "paper_id": st.session_state.paper_id}, headers=auth_headers())
+                    res = requests.post(f"{API}/chat", json={
+                        "session_id": st.session_state.session_id,
+                        "message":    user_msg.strip(),
+                        "paper_id":   st.session_state.paper_id,
+                    }, headers=auth_headers())
                 if res.status_code == 200:
                     reply = res.json().get("response","Sorry, no response.")
                     st.session_state.chat_history.append({"role":"assistant","content":reply}); st.rerun()
